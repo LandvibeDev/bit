@@ -24,7 +24,6 @@ var gitUserCmd = &cobra.Command{
 			},
 		}
 		userFunction = SuggestionPrompt("> bit user ", specificCommandCompleter("user", suggestionTree))
-		println("input", userFunction)
 
 		if userFunction == "addUser" {
 
@@ -46,6 +45,7 @@ var gitUserCmd = &cobra.Command{
 			addUser(username, email, token)
 		} else if userFunction == "deleteUser" {
 			// TODO
+			deleteUser()
 		} else if userFunction == "resetUser" {
 			// TODO
 		} else if userFunction == "listUser" {
@@ -80,6 +80,7 @@ func initLocalStorage() {
 		panic(fmt.Errorf("Fatal error config file: %w \n", err))
 	}
 }
+
 func addUser(userName string, email string, token string) {
 	// TODO valid username check
 
@@ -87,13 +88,78 @@ func addUser(userName string, email string, token string) {
 	viper.Set("users."+userName+".name", userName)
 	viper.Set("users."+userName+".email", email)
 	viper.Set("users."+userName+".token", token)
-	viper.WriteConfig()
+	writeUsers()
 }
 
 func listUser() {
 	var users = viper.Get("users")
 
 	fmt.Println("users: ", users)
+}
+
+func deleteUser() {
+	users := readUsers()
+	userSuggestion := parseToSuggestion(users)
+	if len(userSuggestion) == 0 {
+		fmt.Println("Has no account")
+		return
+	}
+
+	deletingUsername := selectDeletingUser(userSuggestion)
+	delete(viper.Get("users").(map[string]interface{}), deletingUsername)
+	writeUsers()
+}
+
+func selectDeletingUser(userSuggestion []complete.Suggestion) string {
+	suggestionTree := &complete.CompTree{
+		Sub: map[string]*complete.CompTree{
+			"deleteUser": {
+				Dynamic: toAutoCLI(userSuggestion),
+			},
+		},
+	}
+
+	return SuggestionPrompt("> bit user deleteUser ", specificCommandCompleter("deleteUser", suggestionTree))
+}
+
+func readUsers() map[string]User {
+	err := viper.ReadInConfig()
+	if err != nil {
+		fmt.Println("Read Error")
+		return map[string]User{}
+	}
+
+	var users map[string]User
+	err = viper.UnmarshalKey("users", &users)
+	if err != nil {
+		fmt.Println("Get Error")
+		return map[string]User{}
+
+	}
+
+	return users
+}
+
+func writeUsers() {
+	err := viper.WriteConfig()
+	if err != nil {
+		fmt.Println("Write Error")
+	}
+}
+
+func parseToSuggestion(userMap map[string]User) []complete.Suggestion {
+	var userList []complete.Suggestion
+	for _, user := range userMap {
+		userList = append(userList, complete.Suggestion{Name: "" + user.Name, Desc: user.Email})
+	}
+
+	return userList
+}
+
+type User struct {
+	Name  string `json:"name"`
+	Email string `json:"email"`
+	Token string `json:"token"`
 }
 
 var userFunctions = []string{
