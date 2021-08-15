@@ -44,7 +44,6 @@ var gitUserCmd = &cobra.Command{
 
 			addUser(username, email, token)
 		} else if userFunction == "deleteUser" {
-			// TODO
 			deleteUser()
 		} else if userFunction == "resetUser" {
 			// TODO
