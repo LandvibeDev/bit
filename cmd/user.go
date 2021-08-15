@@ -6,6 +6,7 @@ import (
 	"github.com/chriswalz/complete/v3"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"regexp"
 )
 
 // gitAccount represents the gitAccount command
@@ -28,26 +29,38 @@ var gitUserCmd = &cobra.Command{
 
 		if userFunction == "addUser" {
 
-			username := ""
+			userName := ""
 			survey.AskOne(&survey.Input{
 				Message: "input username",
-			}, &username)
+			}, &userName)
+
+			var isUserNameString = regexp.MustCompile(`^[a-zA-Z0-9_]*$`).MatchString
+			if !isUserNameString(userName) || len(userName) == 0 {
+				fmt.Println("UserName is invalid: ", userName)
+				return
+			}
 
 			email := ""
 			survey.AskOne(&survey.Input{
 				Message: "input email",
 			}, &email)
 
+			var isEmailString = regexp.MustCompile(`^[_a-z0-9+-.]+@[a-z0-9-]+(\\.[a-z0-9-]+)*(\\.[a-z]{2,4})$`).MatchString
+			if isEmailString(email) {
+				fmt.Println("Email is invalid: ", email)
+				return
+			}
+
 			token := ""
 			survey.AskOne(&survey.Input{
 				Message: "input token",
 			}, &token)
 
-			addUser(username, email, token)
+			addUser(userName, email, token)
 		} else if userFunction == "deleteUser" {
 			// TODO
 		} else if userFunction == "resetUser" {
-			// TODO
+			resetUsers()
 		} else if userFunction == "listUser" {
 			listUser()
 		}
@@ -81,8 +94,6 @@ func initLocalStorage() {
 	}
 }
 func addUser(userName string, email string, token string) {
-	// TODO valid username check
-
 	// TODO if user name exist question for overwrite
 	viper.Set("users."+userName+".name", userName)
 	viper.Set("users."+userName+".email", email)
@@ -92,8 +103,13 @@ func addUser(userName string, email string, token string) {
 
 func listUser() {
 	var users = viper.Get("users")
-
 	fmt.Println("users: ", users)
+}
+
+func resetUsers() {
+	viper.Set("users", "")
+	viper.WriteConfig()
+	fmt.Println("All users are deleted from bit")
 }
 
 var userFunctions = []string{
