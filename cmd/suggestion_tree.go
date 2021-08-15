@@ -37,7 +37,7 @@ func CreateSuggestionMap(cmd *cobra.Command) (*complete.CompTree, map[string]*co
 	start = time.Now()
 	gitmojiSuggestions := GitmojiSuggestions()
 	log.Debug().Msg((time.Now().Sub(start)).String())
-	gitAccountSuggestions := GitmojiSuggestions()
+	userSuggestions := UserSuggestions()
 
 	st := b
 	st.Sub["version"] = &complete.CompTree{Desc: "Print bit and git version"}
@@ -66,9 +66,9 @@ func CreateSuggestionMap(cmd *cobra.Command) (*complete.CompTree, map[string]*co
 		Desc:    "(Pre-alpha) Commit using gitmojis",
 		Dynamic: toAutoCLI(gitmojiSuggestions),
 	}
-	st.Sub["gitAccount"] = &complete.CompTree{
-		Desc:    "(Pre-alpha) Commit using gitmojis",
-		Dynamic: toAutoCLI(gitmojiSuggestions),
+	st.Sub["user"] = &complete.CompTree{
+		Desc:    "Manage git account",
+		Dynamic: toAutoCLI(userSuggestions),
 	}
 	st.Sub["save"] = &complete.CompTree{
 		Desc: "Save your changes to your current branch",
@@ -122,7 +122,7 @@ func CreateSuggestionMap(cmd *cobra.Command) (*complete.CompTree, map[string]*co
 		descriptionMap[s.Name] = s.Desc
 	})
 
-	funk.ForEach(gitAccountSuggestions, func(s complete.Suggestion) {
+	funk.ForEach(userSuggestions, func(s complete.Suggestion) {
 		if descriptionMap[s.Name] != "" {
 			return
 		}
@@ -242,5 +242,5 @@ var descriptionMap = map[string]string{
 	"update":          "Updates bit to the latest or specified version",
 	"complete":        "Add classical tab completion to bit",
 	"sync":            "Synchronizes local changes with changes on origin or specified branch",
-	"gitAccount":      "(Pre-alpha) Commit using gitAccount",
+	"user":            "Manage git account",
 }

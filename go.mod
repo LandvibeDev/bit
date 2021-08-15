@@ -21,10 +21,11 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.20.0
 	github.com/spf13/cobra v1.1.3
+	github.com/spf13/viper v1.8.1 // indirect
 	github.com/stretchr/testify v1.7.0
 	github.com/thoas/go-funk v0.7.0
 	github.com/tj/go-update v2.2.4+incompatible
 	github.com/ulikunitz/xz v0.5.8 // indirect
-	golang.org/x/sys v0.0.0-20210319071255-635bc2c9138d
+	golang.org/x/sys v0.0.0-20210510120138-977fb7262007
 
 )
