@@ -73,10 +73,10 @@ func UserSuggestions() []complete.Suggestion {
 
 func initLocalStorage() {
 	configHome, err := os.UserHomeDir()
-	configDir := configHome + `/.config/bit`
-	configName := "config1"
+	configDir := configHome + "/.config/bit"
+	configName := "config"
 	configType := "yaml"
-	configPath := filepath.Join(configDir, configName + "." + configType)
+	configPath := filepath.Join(configDir, configName+"."+configType)
 
 	viper.SetConfigName(configName)
 	viper.SetConfigType(configType)
