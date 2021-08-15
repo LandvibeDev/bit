@@ -6,6 +6,8 @@ import (
 	"github.com/chriswalz/complete/v3"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"os"
+	"path/filepath"
 )
 
 // gitAccount represents the gitAccount command
@@ -70,20 +72,33 @@ func UserSuggestions() []complete.Suggestion {
 }
 
 func initLocalStorage() {
-	// TODO create directory, file if not exist
+	configHome, err := os.UserHomeDir()
+	configDir := configHome + "/.config/bit"
+	configName := "config"
+	configType := "yaml"
+	configPath := filepath.Join(configDir, configName+"."+configType)
 
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("$HOME/.config/bit")
-	err := viper.ReadInConfig()
-	if err != nil {
+	viper.SetConfigName(configName)
+	viper.SetConfigType(configType)
+	viper.AddConfigPath(configDir)
+
+	println("configPath: ", configPath)
+
+	if !os.IsExist(err) {
+		if _, err := os.Create(configPath); err != nil {
+			panic(fmt.Errorf("Fatal error for creating config file: %w \n", err))
+		}
+	}
+
+	if err := viper.ReadInConfig(); err != nil {
 		panic(fmt.Errorf("Fatal error config file: %w \n", err))
 	}
+
 }
 func addUser(userName string, email string, token string) {
 	// TODO valid username check
 
-	// TODO if user name exist question for overwrite
+	// TODO if user name exist, then question for overwriting
 	viper.Set("users."+userName+".name", userName)
 	viper.Set("users."+userName+".email", email)
 	viper.Set("users."+userName+".token", token)
