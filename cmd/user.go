@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/chriswalz/complete/v3"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"os"
 )
 
 // gitAccount represents the gitAccount command
@@ -14,8 +16,9 @@ var gitUserCmd = &cobra.Command{
 	Short: "Manage git account",
 	Long:  "Manage git account",
 	Run: func(cmd *cobra.Command, args []string) {
-		userFunction := ""
+		selectedSuggestion := ""
 		userFunctionSuggestions := UserSuggestions()
+
 		suggestionTree := &complete.CompTree{
 			Sub: map[string]*complete.CompTree{
 				"user": {
@@ -23,10 +26,9 @@ var gitUserCmd = &cobra.Command{
 				},
 			},
 		}
-		userFunction = SuggestionPrompt("> bit user ", specificCommandCompleter("user", suggestionTree))
+		selectedSuggestion = SuggestionPrompt("> bit user ", specificCommandCompleter("user", suggestionTree))
 
-		if userFunction == "addUser" {
-
+		if selectedSuggestion == "addUser" {
 			username := ""
 			survey.AskOne(&survey.Input{
 				Message: "input username",
@@ -43,12 +45,18 @@ var gitUserCmd = &cobra.Command{
 			}, &token)
 
 			addUser(username, email, token)
-		} else if userFunction == "deleteUser" {
+		} else if selectedSuggestion == "deleteUser" {
 			deleteUser()
-		} else if userFunction == "resetUser" {
+		} else if selectedSuggestion == "resetUser" {
 			// TODO
-		} else if userFunction == "listUser" {
+		} else if selectedSuggestion == "listUser" {
 			listUser()
+		} else { // selected user
+			users := readUsers()
+			flag := selectFlag(users[selectedSuggestion])
+			if user, ok := users[selectedSuggestion]; ok {
+				applyGitAccount(user, flag)
+			}
 		}
 	},
 }
@@ -59,13 +67,17 @@ func init() {
 }
 
 func UserSuggestions() []complete.Suggestion {
+	users := readUsers()
+	userSuggestion := parseToSuggestion(users)
+
 	var suggestions []complete.Suggestion
 	for _, userFunction := range userFunctions {
 		suggestions = append(suggestions, complete.Suggestion{
 			Name: userFunction,
 		})
 	}
-	return suggestions
+
+	return append(userSuggestion, suggestions...)
 }
 
 func initLocalStorage() {
@@ -119,6 +131,48 @@ func selectDeletingUser(userSuggestion []complete.Suggestion) string {
 	}
 
 	return SuggestionPrompt("> bit user deleteUser ", specificCommandCompleter("deleteUser", suggestionTree))
+}
+
+func selectFlag(user User) string {
+	gitLocalConfigFile, err := os.Stat("./.git/config")
+	if os.IsNotExist(err) || gitLocalConfigFile.IsDir() {
+		return "--global"
+	}
+
+	suggestions := []complete.Suggestion{
+		{Name: "--global", Desc: "set up global "},
+		{Name: "--local", Desc: "set up local "},
+	}
+
+	suggestionTree := &complete.CompTree{
+		Sub: map[string]*complete.CompTree{
+			user.Name: {
+				Dynamic: toAutoCLI(suggestions),
+			},
+		},
+	}
+
+	return SuggestionPrompt("> bit user "+user.Name+" ", specificCommandCompleter(user.Name, suggestionTree))
+}
+
+func applyGitAccount(user User, flag string) {
+	if _, err := execCommand("git", "config", flag, "user.name", user.Name).CombinedOutput(); err != nil {
+		log.Debug().Err(err).Send()
+	} else {
+		println("apply user name")
+	}
+
+	if _, err := execCommand("git", "config", flag, "user.email", user.Email).CombinedOutput(); err != nil {
+		log.Debug().Err(err).Send()
+	} else {
+		println("apply user email")
+	}
+
+	if _, err := execCommand("git", "config", flag, "user.signingkey", user.Token).CombinedOutput(); err != nil {
+		log.Debug().Err(err).Send()
+	} else {
+		println("apply user token")
+	}
 }
 
 func readUsers() map[string]User {
