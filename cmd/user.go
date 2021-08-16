@@ -7,6 +7,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"os"
 )
 
 // gitAccount represents the gitAccount command
@@ -133,6 +134,11 @@ func selectDeletingUser(userSuggestion []complete.Suggestion) string {
 }
 
 func selectFlag(user User) string {
+	gitLocalConfigFile, err := os.Stat("./.git/config")
+	if os.IsNotExist(err) || gitLocalConfigFile.IsDir() {
+		return "--global"
+	}
+
 	suggestions := []complete.Suggestion{
 		{Name: "--global", Desc: "set up global "},
 		{Name: "--local", Desc: "set up local "},
