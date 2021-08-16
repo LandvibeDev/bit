@@ -15,18 +15,23 @@ var gitUserCmd = &cobra.Command{
 	Use:   "user",
 	Short: "Manage git account",
 	Long:  "Manage git account",
+	Args:  cobra.MaximumNArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		selectedSuggestion := ""
-		userFunctionSuggestions := UserSuggestions()
-
-		suggestionTree := &complete.CompTree{
-			Sub: map[string]*complete.CompTree{
-				"user": {
-					Dynamic: toAutoCLI(userFunctionSuggestions),
+		if len(args) == 0 {
+			userFunctionSuggestions := UserSuggestions()
+			suggestionTree := &complete.CompTree{
+				Sub: map[string]*complete.CompTree{
+					"user": {
+						Dynamic: toAutoCLI(userFunctionSuggestions),
+					},
 				},
-			},
+			}
+
+			selectedSuggestion = SuggestionPrompt("> bit user ", specificCommandCompleter("user", suggestionTree))
+		} else {
+			selectedSuggestion = args[0]
 		}
-		selectedSuggestion = SuggestionPrompt("> bit user ", specificCommandCompleter("user", suggestionTree))
 
 		if selectedSuggestion == "addUser" {
 			username := ""
@@ -46,7 +51,11 @@ var gitUserCmd = &cobra.Command{
 
 			addUser(username, email, token)
 		} else if selectedSuggestion == "deleteUser" {
-			deleteUser()
+			if len(args) == 2 {
+				deleteUser(args[1])
+			} else {
+				deleteUserThroughSuggestions()
+			}
 		} else if selectedSuggestion == "resetUser" {
 			// TODO
 		} else if selectedSuggestion == "listUser" {
@@ -108,7 +117,7 @@ func listUser() {
 	fmt.Println("users: ", users)
 }
 
-func deleteUser() {
+func deleteUserThroughSuggestions() {
 	users := readUsers()
 	userSuggestion := parseToSuggestion(users)
 	if len(userSuggestion) == 0 {
@@ -117,6 +126,10 @@ func deleteUser() {
 	}
 
 	deletingUsername := selectDeletingUser(userSuggestion)
+	deleteUser(deletingUsername)
+}
+
+func deleteUser(deletingUsername string) {
 	delete(viper.Get("users").(map[string]interface{}), deletingUsername)
 	writeUsers()
 }
