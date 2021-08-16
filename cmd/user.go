@@ -52,8 +52,9 @@ var gitUserCmd = &cobra.Command{
 			listUser()
 		} else { // selected user
 			users := readUsers()
-			if user, ok := users["foo"]; ok {
-				applyGitAccount(user)
+			flag := selectFlag(users[selectedSuggestion])
+			if user, ok := users[selectedSuggestion]; ok {
+				applyGitAccount(user, flag)
 			}
 		}
 	},
@@ -131,20 +132,37 @@ func selectDeletingUser(userSuggestion []complete.Suggestion) string {
 	return SuggestionPrompt("> bit user deleteUser ", specificCommandCompleter("deleteUser", suggestionTree))
 }
 
-func applyGitAccount(user User) {
-	if _, err := execCommand("git", "config", "user.name", user.Name).CombinedOutput(); err != nil {
+func selectFlag(user User) string {
+	suggestions := []complete.Suggestion{
+		{Name: "--global", Desc: "set up global "},
+		{Name: "--local", Desc: "set up local "},
+	}
+
+	suggestionTree := &complete.CompTree{
+		Sub: map[string]*complete.CompTree{
+			user.Name: {
+				Dynamic: toAutoCLI(suggestions),
+			},
+		},
+	}
+
+	return SuggestionPrompt("> bit user "+user.Name+" ", specificCommandCompleter(user.Name, suggestionTree))
+}
+
+func applyGitAccount(user User, flag string) {
+	if _, err := execCommand("git", "config", flag, "user.name", user.Name).CombinedOutput(); err != nil {
 		log.Debug().Err(err).Send()
 	} else {
 		println("apply user name")
 	}
 
-	if _, err := execCommand("git", "config", "user.email", user.Email).CombinedOutput(); err != nil {
+	if _, err := execCommand("git", "config", flag, "user.email", user.Email).CombinedOutput(); err != nil {
 		log.Debug().Err(err).Send()
 	} else {
 		println("apply user email")
 	}
 
-	if _, err := execCommand("git", "config", "user.signingkey", user.Token).CombinedOutput(); err != nil {
+	if _, err := execCommand("git", "config", flag, "user.signingkey", user.Token).CombinedOutput(); err != nil {
 		log.Debug().Err(err).Send()
 	} else {
 		println("apply user token")
